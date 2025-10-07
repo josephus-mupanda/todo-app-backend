@@ -1,7 +1,5 @@
 package com.example.todo_app.common.service.impl;
 
-package com.josephus.SafeHarvest.service.impl;
-
 import com.josephus.SafeHarvest.models.User;
 import com.josephus.SafeHarvest.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

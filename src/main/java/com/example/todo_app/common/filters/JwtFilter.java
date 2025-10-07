@@ -1,8 +1,10 @@
 package com.example.todo_app.common.filters;
 
 
+import com.example.todo_app.common.service.TokenBlacklistService;
 import com.example.todo_app.common.service.impl.CustomUserDetailsService;
 import com.example.todo_app.common.utils.JwtUtil;
+import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,11 +27,18 @@ public class JwtFilter extends OncePerRequestFilter {
     private TokenBlacklistService tokenBlacklistService;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain
+    protected void doFilterInternal(
+            @NonNull HttpServletRequest request,
+            @NonNull HttpServletResponse response,
+            @NonNull FilterChain filterChain
     )
             throws ServletException, IOException {
+
+        // Skip authentication for login/register endpoints
+        if (request.getServletPath().contains("/api/v1/auth")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String authHeader = request.getHeader("Authorization");
         String token = null;
