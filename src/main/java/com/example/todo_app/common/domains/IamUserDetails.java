@@ -1,4 +1,4 @@
-package com.example.todo_app.common.models;
+package com.example.todo_app.common.domains;
 
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;

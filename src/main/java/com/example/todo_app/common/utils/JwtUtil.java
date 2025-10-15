@@ -1,6 +1,6 @@
 package com.example.todo_app.common.utils;
 
-import com.example.todo_app.common.models.IamUserDetails;
+import com.example.todo_app.common.domains.IamUserDetails;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
