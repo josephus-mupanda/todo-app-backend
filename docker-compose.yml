@@ -3,7 +3,7 @@ version: "3.9"
 services:
   postgres:
     image: postgres:16.4-alpine3.20
-    container_name: biyee-postgres
+    container_name: todo-postgres
     environment:
       POSTGRES_USER: ${DATABASE_USERNAME}
       POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
@@ -18,7 +18,7 @@ services:
 
   redis:
     image: redis:7.2-alpine
-    container_name: biyee-redis
+    container_name: todo-redis
     ports:
       - "${REDIS_PORT}:6379"
     environment:
