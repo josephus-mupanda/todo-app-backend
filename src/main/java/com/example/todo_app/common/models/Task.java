@@ -1,24 +1,25 @@
 package com.example.todo_app.common.models;
+import com.example.todo_app.common.domains.BasicEntity;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
-import java.util.Set;
-@Entity
-@Table(name = "tasks")
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class Task {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
-
+@Entity
+@Table(name = "tasks")
+@SQLDelete(sql = "UPDATE tasks SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
+public class Task extends BasicEntity {
+    @Column(name = "title", nullable = false, length = 255)
     private String title;
 
-    private boolean completed = false;
+    @Column(name = "is_completed", nullable = false)
+    private boolean isCompleted;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id")
