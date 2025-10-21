@@ -1,17 +1,56 @@
 package com.example.todo_app.user.services;
 
+import com.example.todo_app.common.models.ConfirmationToken;
+import com.example.todo_app.common.models.PasswordResetToken;
 import com.example.todo_app.user.dtos.*;
+import com.example.todo_app.user.models.User;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
-public interface UserService {
-    UserResponseDTO registerUser(RegisterUserDTO registerDTO);
+public interface UserService extends UserDetailsService {
 
-    AuthResponseDTO loginUser(LoginDTO loginDTO);
+    // -------------------- USER CHECKS --------------------
+    Boolean hasUserWithUsername(String username);
 
-    void requestPasswordResetCode(PasswordResetRequestDTO dto);
+    Boolean hasUserWithEmail(String email);
 
-    void resetPassword(PasswordResetDTO dto);
+    // -------------------- LOAD USER --------------------
+    UserDetails loadUserByUsername(String username) throws UsernameNotFoundException;
 
-    void logoutUser(String token);
+    // -------------------- REGISTER USER --------------------
+    User registerUser(String username, String email, String password);
 
-    UserResponseDTO getUserById(String id);
+    // -------------------- LOGIN --------------------
+    String verify(String email, String rawPassword);
+
+    void invalidateToken(String token);
+
+    User getUserByEmail(String email);
+
+    User getUserById(String id);
+
+    void saveUser(User user);
+
+    String encodePassword(String rawPassword);
+
+    // -------------------- CONFIRMATION TOKEN --------------------
+    ConfirmationToken createConfirmationToken(User user);
+
+    ConfirmationToken getConfirmationToken(String code);
+
+    void deleteConfirmationToken(ConfirmationToken token);
+
+    // -------------------- PASSWORD RESET TOKEN --------------------
+    PasswordResetToken createPasswordResetToken(User user);
+
+    PasswordResetToken getPasswordResetToken(String code);
+
+    void deletePasswordResetToken(PasswordResetToken token);
+
+    String extractUsernameFromToken(String token);
+
+    User getUserByUsername(String username);
+
+    User getUserFromToken(String bearerToken);
 }

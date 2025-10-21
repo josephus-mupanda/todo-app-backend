@@ -1,27 +1,31 @@
 package com.example.todo_app.common.filters;
 
-import com.example.todo_app.common.service.TokenBlacklistService;
-import com.example.todo_app.common.service.impl.CustomUserDetailsService;
+import com.example.todo_app.common.services.TokenBlacklistService;
 import com.example.todo_app.common.utils.JwtUtil;
+import com.example.todo_app.user.services.UserService;
 import io.micrometer.common.lang.NonNull;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+@Component
 public class JwtFilter extends OncePerRequestFilter {
     @Autowired
     private JwtUtil jwtUtil;
+
     @Autowired
-    private CustomUserDetailsService customUserDetailsService;
+    private @Lazy UserService userService;
     @Autowired
     private TokenBlacklistService tokenBlacklistService;
 
@@ -55,7 +59,7 @@ public class JwtFilter extends OncePerRequestFilter {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been invalidated");
                 return;
             }
-            UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+            UserDetails userDetails = userService.loadUserByUsername(username);
 
             if (jwtUtil.validateToken(token, userDetails)) {
                 // Set the authentication in the context

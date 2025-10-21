@@ -1,14 +1,14 @@
-package com.example.todo_app.common.models;
+package com.example.todo_app.user.models;
 
 import com.example.todo_app.common.domains.BasicEntity;
 import com.example.todo_app.common.domains.Role;
 import com.example.todo_app.common.enums.UserType;
+import com.example.todo_app.Task.models.Task;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
-import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 @Getter
@@ -31,11 +31,11 @@ public class User extends BasicEntity {
     @Column(name = "password_hash", nullable = false, length = 255)
     private String passwordHash;
 
-    @Column(name = "is_active", nullable = false)
-    private Boolean isActive = true;
-
-    @Column(name = "is_admin", nullable = false)
-    private Boolean isAdmin = false;
+//    @Column(name = "is_active", nullable = false)
+//    private Boolean isActive = true;
+//
+//    @Column(name = "is_admin", nullable = false)
+//    private Boolean isAdmin = false;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "user_type", nullable = false, length = 50)
@@ -50,13 +50,12 @@ public class User extends BasicEntity {
     @Builder.Default
     private Set<Role> roles = new HashSet<>();
 
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean enabled = true;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
     private Set<Task> tasks = new HashSet<>();
 
-    @Column(name = "password_reset_token")
-    private String passwordResetToken;
-
-    @Column(name = "password_reset_token_expiration")
-    private LocalDateTime passwordResetTokenExpiration;
 }

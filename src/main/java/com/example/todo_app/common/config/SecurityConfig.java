@@ -2,17 +2,24 @@ package com.example.todo_app.common.config;
 
 import com.example.todo_app.common.annotations.PublicEndpoint;
 import com.example.todo_app.common.filters.JwtFilter;
+import com.example.todo_app.user.services.UserService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.core.annotation.AnnotatedElementUtils;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -27,7 +34,6 @@ import java.util.stream.Stream;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 @EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
@@ -39,7 +45,6 @@ public class SecurityConfig {
             "/swagger-ui.html"
     };
 
-    private final AuthenticationProvider authenticationProvider;
     private final JwtFilter jwtAuthenticationFilter;
     private final RequestMappingHandlerMapping handlerMapping;
     private final AllowedOrigins allowedOrigins;
@@ -48,6 +53,20 @@ public class SecurityConfig {
 
     private String[] finalWhitelist;
 
+    // Remove AuthenticationProvider from constructor
+    public SecurityConfig(
+            JwtFilter jwtAuthenticationFilter,
+            RequestMappingHandlerMapping handlerMapping,
+            AllowedOrigins allowedOrigins,
+            CustomAuthenticationEntryPoint customAuthenticationEntryPoint,
+            CustomAccessDeniedHandler customAccessDeniedHandler
+    ) {
+        this.jwtAuthenticationFilter = jwtAuthenticationFilter;
+        this.handlerMapping = handlerMapping;
+        this.allowedOrigins = allowedOrigins;
+        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
+        this.customAccessDeniedHandler = customAccessDeniedHandler;
+    }
     @PostConstruct
     public void initWhitelist() {
         Set<String> publicEndpoints = new HashSet<>();
@@ -72,6 +91,26 @@ public class SecurityConfig {
                 Arrays.stream(SWAGGER_WHITELIST),
                 publicEndpoints.stream()
         ).toArray(String[]::new);
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationProvider authenticationProvider(
+            @Lazy UserService userService,
+            PasswordEncoder passwordEncoder
+    ) {
+        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider();
+        authProvider.setUserDetailsService(userService);
+        authProvider.setPasswordEncoder(passwordEncoder);
+        return authProvider;
+    }
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+        return config.getAuthenticationManager();
     }
 
     @Bean
@@ -111,7 +150,9 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(
+            HttpSecurity http, AuthenticationProvider authenticationProvider
+    ) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeHttpRequests(auth -> auth

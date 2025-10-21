@@ -1,6 +1,7 @@
 package com.example.todo_app.common.models;
 
 import com.example.todo_app.common.domains.BasicEntity;
+import com.example.todo_app.user.models.User;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.SQLDelete;

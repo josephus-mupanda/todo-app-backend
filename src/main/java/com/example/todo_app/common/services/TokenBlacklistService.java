@@ -1,4 +1,4 @@
-package com.example.todo_app.common.service;
+package com.example.todo_app.common.services;
 
 public interface TokenBlacklistService {
     void blacklistToken(String token, long expirationMillis);

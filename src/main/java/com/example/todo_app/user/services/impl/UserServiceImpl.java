@@ -1,53 +1,42 @@
 package com.example.todo_app.user.services.impl;
+import com.example.todo_app.common.domains.IamUserDetails;
+import com.example.todo_app.common.domains.Permission;
+import com.example.todo_app.common.domains.Role;
 import com.example.todo_app.common.domains.Token;
-import com.example.todo_app.common.models.User;
+import com.example.todo_app.common.enums.UserType;
+import com.example.todo_app.common.models.ConfirmationToken;
+import com.example.todo_app.common.models.PasswordResetToken;
+import com.example.todo_app.common.repositories.ConfirmationTokenRepository;
+import com.example.todo_app.common.repositories.PasswordResetTokenRepository;
+import com.example.todo_app.common.repositories.RoleRepository;
+import com.example.todo_app.common.repositories.TokenRepository;
 import com.example.todo_app.common.utils.JwtUtil;
-import com.example.todo_app.user.dtos.*;
+import com.example.todo_app.user.models.User;
 import com.example.todo_app.user.repositories.UserRepository;
 import com.example.todo_app.user.services.UserService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.UUID;
+import java.util.Random;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder bCryptPasswordEncoder;
-    private final AuthenticationManager authenticationManager;
+//    private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final ConfirmationTokenRepository confirmationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final TokenRepository tokenRepository;
-
-    @Autowired
-    public UserServiceImpl(UserRepository userRepository,
-                           RoleRepository roleRepository,
-                           PasswordEncoder passwordEncoder,
-                           AuthenticationManager authenticationManager,
-                           JwtUtil jwtUtil,
-                           ConfirmationTokenRepository confirmationTokenRepository,
-                           PasswordResetTokenRepository passwordResetTokenRepository,
-                           TokenRepository tokenRepository ) {
-        this.userRepository = userRepository;
-        this.roleRepository = roleRepository;
-        this.bCryptPasswordEncoder = passwordEncoder;
-        this.authenticationManager = authenticationManager;
-        this.jwtUtil = jwtUtil;
-        this.confirmationTokenRepository = confirmationTokenRepository;
-        this.passwordResetTokenRepository = passwordResetTokenRepository;
-        this.tokenRepository = tokenRepository;
-    }
 
     // -------------------- USER CHECKS --------------------
     @Override
@@ -92,7 +81,7 @@ public class UserServiceImpl implements UserService {
         user.setPasswordHash(bCryptPasswordEncoder.encode(password));
         user.setEnabled(false);
 
-        Role customerRole = roleRepository.findByName(UserType.CUSTOMER.name())
+        Role customerRole = roleRepository.findByName(UserType.USER.name())
                 .orElseThrow(() -> new RuntimeException("Role CUSTOMER not found"));
         user.setRoles(Set.of(customerRole));
 
@@ -103,20 +92,40 @@ public class UserServiceImpl implements UserService {
     @Override
     public String verify(String email, String rawPassword) {
         try {
-            Authentication auth = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(email, rawPassword)
-            );
-
-            if (auth.isAuthenticated()) {
-                User user = getUserByEmail(email);
-                return jwtUtil.generateToken(mapToIamUserDetails(user));
+            // Manual authentication instead of using AuthenticationManager
+            User user = getUserByEmail(email);
+            if (user == null) {
+                return "Failed";
             }
-        } catch (AuthenticationException ex) {
-            return "Failed";
+            // Check if password matches
+            if (!bCryptPasswordEncoder.matches(rawPassword, user.getPasswordHash())) {
+                return "Failed";
+            }
+            // Check if user is enabled
+            if (!user.getEnabled()) {
+                return "Failed - Email not confirmed";
+            }
+            // Generate token
+            return jwtUtil.generateToken(mapToIamUserDetails(user));
+
         } catch (Exception e) {
-            throw new RuntimeException(e);
+            return "Failed";
         }
-        return "Failed";
+//        try {
+//            Authentication auth = authenticationManager.authenticate(
+//                    new UsernamePasswordAuthenticationToken(email, rawPassword)
+//            );
+//
+//            if (auth.isAuthenticated()) {
+//                User user = getUserByEmail(email);
+//                return jwtUtil.generateToken(mapToIamUserDetails(user));
+//            }
+//        } catch (AuthenticationException ex) {
+//            return "Failed";
+//        } catch (Exception e) {
+//            throw new RuntimeException(e);
+//        }
+//        return "Failed";
     }
 
     @Override
@@ -128,6 +137,12 @@ public class UserServiceImpl implements UserService {
         blacklistedToken.setRevokedAt(LocalDateTime.now());
         tokenRepository.save(blacklistedToken);
     }
+
+    @Override
+    public User getUserByEmail(String email) {
+        return userRepository.findByEmail(email).orElse(null);
+    }
+
     @Override
     public User getUserById(String id) {
         return userRepository.findById(id).orElse(null);
@@ -142,6 +157,7 @@ public class UserServiceImpl implements UserService {
     public String encodePassword(String rawPassword) {
         return bCryptPasswordEncoder.encode(rawPassword);
     }
+
     // -------------------- CONFIRMATION TOKEN --------------------
     @Override
     public ConfirmationToken createConfirmationToken(User user) {
@@ -183,12 +199,10 @@ public class UserServiceImpl implements UserService {
     public void deletePasswordResetToken(PasswordResetToken token) {
         passwordResetTokenRepository.delete(token);
     }
-    @Override
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
+
 
     // -------------------- HELPER --------------------
+
     private IamUserDetails mapToIamUserDetails(User user) {
         Set<String> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
         Set<String> permissions = user.getRoles().stream()
@@ -210,6 +224,7 @@ public class UserServiceImpl implements UserService {
     private String generateRandomCode() {
         return String.valueOf(100000 + new Random().nextInt(900000)); // 6-digit numeric code
     }
+
     @Override
     public String extractUsernameFromToken(String token) {
         return jwtUtil.extractUsername(token);
@@ -241,6 +256,4 @@ public class UserServiceImpl implements UserService {
         Optional<User> optionalUser = userRepository.findByEmail(username);
         return optionalUser.orElse(null);
     }
-
-
 }

@@ -1,6 +1,6 @@
-package com.example.todo_app.common.service.impl;
+package com.example.todo_app.common.services.impl;
 
-import com.example.todo_app.common.service.TokenBlacklistService;
+import com.example.todo_app.common.services.TokenBlacklistService;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 

@@ -1,7 +1,7 @@
 package com.example.todo_app.Task.mappers;
 
 import com.example.todo_app.Task.dtos.TaskDTO;
-import com.example.todo_app.common.models.Task;
+import com.example.todo_app.Task.models.Task;
 
 public class TaskMapper {
 

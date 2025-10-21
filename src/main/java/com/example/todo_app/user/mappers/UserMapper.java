@@ -1,24 +1,35 @@
 package com.example.todo_app.user.mappers;
 
-import com.example.todo_app.common.domains.Role;
-import com.example.todo_app.common.models.User;
-import com.example.todo_app.user.dtos.UserResponseDTO;
+import com.example.todo_app.user.dtos.UserDTO;
+import com.example.todo_app.user.models.User;
 
 import java.util.stream.Collectors;
 
 
-public class UserMapper {
+public final class UserMapper {
+    private UserMapper() {}
 
-    public static UserResponseDTO toResponseDTO(User user) {
-        return UserResponseDTO.builder()
-                .id(user.getId())
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .isActive(user.getIsActive())
-                .isAdmin(user.getIsAdmin())
-                .roles(user.getRoles().stream().map(Role::getName).collect(Collectors.toSet()))
-                .build();
+    public static User toEntity(UserDTO.Input dto) {
+        if (dto == null) return null;
+        User user = new User();
+        user.setUsername(dto.username());
+        user.setEmail(dto.email());
+        user.setPasswordHash(dto.passwordHash());
+        user.setUserType(dto.userType());
+        user.setEnabled(dto.enabled());
+        return user;
+    }
+
+    public static UserDTO.Output toDTO(User user) {
+        if (user == null) return null;
+        return new UserDTO.Output(
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getUserType(),
+                user.getEnabled(),
+                user.getRoles() != null ? user.getRoles().stream().map(r -> r.getId()).collect(Collectors.toSet()) : null,
+                user.getTasks() != null ? user.getTasks().stream().map(c -> c.getId()).collect(Collectors.toSet()) : null
+        );
     }
 }
-
-
