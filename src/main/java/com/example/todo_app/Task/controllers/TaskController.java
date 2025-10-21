@@ -17,12 +17,10 @@ import java.util.List;
 @Tag(name = "Tasks", description = "Endpoints for managing user tasks")
 @RequiredArgsConstructor
 public class TaskController {
-
     private final TaskService taskService;
-
     @Operation(
             summary = "Create a new task",
-            description = "Creates a task associated with the authenticated user."
+            description = "Creates a task for the authenticated user."
     )
     @PostMapping
     @IsAuthenticated
@@ -41,28 +39,27 @@ public class TaskController {
     }
 
     @Operation(
-            summary = "Get all tasks for a user",
-            description = "Returns all tasks created by a specific user."
+            summary = "Get all tasks for the authenticated user",
+            description = "Returns all tasks created by the current authenticated user."
     )
-    @GetMapping("/user/{userId}")
+    @GetMapping
     @IsAuthenticated
-    public ResponseEntity<List<TaskDTO>> getTasksByUser(@PathVariable String userId) {
-        return ResponseEntity.ok(taskService.getTasksByUser(userId));
+    public ResponseEntity<List<TaskDTO>> getTasks() {
+        return ResponseEntity.ok(taskService.getTasksByUser());
     }
 
     @Operation(
             summary = "Update a task",
-            description = "Updates the title or completion status of an existing task."
+            description = "Updates the title or completion status of an existing task owned by the authenticated user."
     )
     @PutMapping("/{id}")
     @IsAuthenticated
     public ResponseEntity<TaskDTO> updateTask(@PathVariable String id, @Valid @RequestBody TaskDTO dto) {
         return ResponseEntity.ok(taskService.updateTask(id, dto));
     }
-
     @Operation(
             summary = "Delete a task",
-            description = "Soft deletes a task owned by the authenticated user."
+            description = "Deletes a task owned by the authenticated user."
     )
     @DeleteMapping("/{id}")
     @IsAuthenticated
