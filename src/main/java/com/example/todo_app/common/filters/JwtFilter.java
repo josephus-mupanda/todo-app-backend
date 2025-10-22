@@ -1,6 +1,5 @@
 package com.example.todo_app.common.filters;
 
-import com.example.todo_app.common.services.TokenBlacklistService;
 import com.example.todo_app.common.utils.JwtUtil;
 import com.example.todo_app.user.services.UserService;
 import io.micrometer.common.lang.NonNull;
@@ -26,8 +25,6 @@ public class JwtFilter extends OncePerRequestFilter {
 
     @Autowired
     private @Lazy UserService userService;
-    @Autowired
-    private TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(
@@ -55,7 +52,7 @@ public class JwtFilter extends OncePerRequestFilter {
 
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            if (tokenBlacklistService.isTokenBlacklisted(token)) {
+            if (userService.isTokenBlacklisted(token)) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Token has been invalidated");
                 return;
             }

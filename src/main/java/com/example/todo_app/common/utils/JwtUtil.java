@@ -54,7 +54,6 @@ public class JwtUtil {
         final String extractedUsername = extractUsername(token);
         return extractedUsername.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
-
     // --- Extraction ---
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -72,7 +71,6 @@ public class JwtUtil {
         final Claims claims = extractAllClaims(token);
         return resolver.apply(claims);
     }
-
     private Claims extractAllClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getSignInKey())
@@ -81,6 +79,13 @@ public class JwtUtil {
                 .getPayload();
     }
 
+//    private Claims extractAllClaims(String token) {
+//        return Jwts.parserBuilder()
+//                .setSigningKey(getSignInKey())
+//                .build()
+//                .parseClaimsJws(token)
+//                .getBody();
+//    }
     // --- Key ---
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);

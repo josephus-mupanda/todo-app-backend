@@ -76,8 +76,12 @@ public class AuthController {
         if ("Failed".equals(token)) {
             throw new UnauthorizedException("Invalid username or password");
         }
-
+        // Also update this to handle both username and email lookup
         User loggedInUser = userService.getUserByUsername(request.username());
+        if (loggedInUser == null) {
+            // Try by email if not found by username
+            loggedInUser = userService.getUserByEmail(request.username());
+        }
 
         if (!loggedInUser.getEnabled()) {
             throw new ForbiddenException("Email not confirmed");
@@ -95,12 +99,23 @@ public class AuthController {
     @Operation(summary = "Logout a user")
     @PostMapping("/logout")
     public ResponseEntity<GenericResponse<String>> logout(
-            @RequestHeader("Authorization") String token
+            @RequestHeader("Authorization") String authHeader
     ) {
+        String token = authHeader;
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            token = authHeader.substring(7); // Remove "Bearer " prefix
+        }
+
         User user = userService.getUserFromToken(token);
         if (user == null) {
             throw new BadRequestException("Invalid token or user not found");
         }
+//        User user = userService.getUserFromToken(token);
+//        if (user == null) {
+//            throw new BadRequestException("Invalid token or user not found");
+//        }
+        // Validate before invalidating
+        userService.validateTokenOrThrow(token);
         // Add token to blacklist
         userService.invalidateToken(token);
         userListener.logUserAction(user, "LOGOUT");

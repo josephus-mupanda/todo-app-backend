@@ -29,7 +29,7 @@ public class PasswordResetToken extends BasicEntity {
     @Column(nullable = false)
     private LocalDateTime expiryDate;
 
-    @OneToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 }

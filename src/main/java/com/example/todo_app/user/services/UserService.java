@@ -26,6 +26,10 @@ public interface UserService extends UserDetailsService {
 
     void invalidateToken(String token);
 
+    boolean isTokenBlacklisted(String token);
+
+    void validateTokenOrThrow(String token);
+
     User getUserByEmail(String email);
 
     User getUserById(String id);
@@ -52,5 +56,5 @@ public interface UserService extends UserDetailsService {
 
     User getUserByUsername(String username);
 
-    User getUserFromToken(String bearerToken);
+    User getUserFromToken(String token);
 }

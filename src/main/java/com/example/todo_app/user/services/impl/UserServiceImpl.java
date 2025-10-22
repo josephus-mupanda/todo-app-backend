@@ -4,6 +4,7 @@ import com.example.todo_app.common.domains.Permission;
 import com.example.todo_app.common.domains.Role;
 import com.example.todo_app.common.domains.Token;
 import com.example.todo_app.common.enums.UserType;
+import com.example.todo_app.common.exceptions.BadRequestException;
 import com.example.todo_app.common.models.ConfirmationToken;
 import com.example.todo_app.common.models.PasswordResetToken;
 import com.example.todo_app.common.repositories.ConfirmationTokenRepository;
@@ -20,6 +21,8 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.Random;
@@ -51,9 +54,16 @@ public class UserServiceImpl implements UserService {
 
     // -------------------- LOAD USER --------------------
     @Override
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        User user = userRepository.findFirstByUsername(username)
-                .orElseThrow(() -> new UsernameNotFoundException("Username not found"));
+    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
+        User user = userRepository.findFirstByUsername(usernameOrEmail)
+                .orElseGet(() -> userRepository.findByEmail(usernameOrEmail).orElse(null));
+
+        if (user == null) {
+            throw new UsernameNotFoundException("User not found with username/email: " + usernameOrEmail);
+        }
+
+//        User user = userRepository.findFirstByUsername(username)
+//                .orElseThrow(() -> new UsernameNotFoundException("Username not found"));
 
         Set<String> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
         Set<String> permissions = user.getRoles().stream()
@@ -93,10 +103,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public String verify(String email, String rawPassword) {
         try {
-            // Manual authentication instead of using AuthenticationManager
-            User user = getUserByEmail(email);
+            // Try to find user by username first, then by email
+            User user = getUserByUsername(email);
             if (user == null) {
-                return "Failed";
+                // If not found by username, try by email
+                user = getUserByEmail(email);
             }
             // Check if password matches
             if (!bCryptPasswordEncoder.matches(rawPassword, user.getPasswordHash())) {
@@ -116,7 +127,6 @@ public class UserServiceImpl implements UserService {
 //            Authentication auth = authenticationManager.authenticate(
 //                    new UsernamePasswordAuthenticationToken(email, rawPassword)
 //            );
-//
 //            if (auth.isAuthenticated()) {
 //                User user = getUserByEmail(email);
 //                return jwtUtil.generateToken(mapToIamUserDetails(user));
@@ -133,12 +143,46 @@ public class UserServiceImpl implements UserService {
     public void invalidateToken(String token) {
         // Store token in a blacklist table
         Token blacklistedToken = new Token();
-        blacklistedToken.setToken(token);
+        blacklistedToken.setToken(hashToken(token));
         blacklistedToken.setUserId(extractUserIdFromToken(token));
         blacklistedToken.setRevokedAt(LocalDateTime.now());
         tokenRepository.save(blacklistedToken);
     }
 
+    @Override
+    public boolean isTokenBlacklisted(String token) {
+        return tokenRepository.existsByToken(hashToken(token));
+    }
+    @Override
+    public void validateTokenOrThrow(String token) {
+        if (token == null || token.isEmpty()) {
+            throw new BadRequestException("Token is missing");
+        }
+        User user = getUserFromToken(token);
+        if (user == null) {
+            throw new BadRequestException("Invalid token or user not found");
+        }
+        if (isTokenBlacklisted(token)) {
+            throw new BadRequestException("Token has been revoked");
+        }
+        // Check JWT validity
+        if (!jwtUtil.validateToken(token, mapToIamUserDetails(user))) {
+            throw new BadRequestException("Token is invalid or expired");
+        }
+    }
+    private String hashToken(String token) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hashedBytes = digest.digest(token.getBytes());
+            StringBuilder sb = new StringBuilder();
+            for (byte b : hashedBytes) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("Hashing algorithm not found", e);
+        }
+    }
     @Override
     public User getUserByEmail(String email) {
         return userRepository.findByEmail(email).orElse(null);
@@ -246,15 +290,16 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public User getUserFromToken(String bearerToken) {
-        if (bearerToken == null || !bearerToken.startsWith("Bearer ")) {
-            return null;
-        }
-        String token = bearerToken.substring(7); // remove "Bearer " prefix
-        String username = jwtUtil.extractUsername(token);
-        if (username == null) return null;
+    public User getUserFromToken(String token) {
 
-        Optional<User> optionalUser = userRepository.findByEmail(username);
-        return optionalUser.orElse(null);
+        if (token == null || token.isEmpty()) return null;
+
+        String usernameOrEmail = jwtUtil.extractUsername(token);
+        if (usernameOrEmail == null) return null;
+
+        User user = getUserByEmail(usernameOrEmail);
+        if (user == null) user = getUserByUsername(usernameOrEmail);
+
+        return user;
     }
 }

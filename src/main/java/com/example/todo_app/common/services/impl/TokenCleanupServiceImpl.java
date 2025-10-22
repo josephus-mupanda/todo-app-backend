@@ -30,3 +30,30 @@ public class TokenCleanupServiceImpl implements TokenCleanupService {
        passwordResetTokenRepository.deleteByExpiryDateBefore(LocalDateTime.now());
     }
 }
+
+//@Service
+//public class TokenBlacklistServiceImpl implements TokenBlacklistService {
+
+//    private final RedisTemplate<String, String> redisTemplate;
+//
+//    public TokenBlacklistServiceImpl(RedisTemplate<String, String> redisTemplate) {
+//        this.redisTemplate = redisTemplate;
+//    }
+//
+//    @Override
+//    public void blacklistToken(String token, long expirationMillis) {
+//        // Store token in Redis with a TTL equal to remaining lifetime
+//        redisTemplate.opsForValue().set(token, "BLACKLISTED", expirationMillis, TimeUnit.MILLISECONDS);
+//    }
+//
+//    @Override
+//    public boolean isTokenBlacklisted(String token) {
+//        return Boolean.TRUE.equals(redisTemplate.hasKey(token));
+//    }
+//
+//    @Override
+//    public void removeToken(String token) {
+//        redisTemplate.delete(token);
+//    }
+//}
+
