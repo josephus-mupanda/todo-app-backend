@@ -80,10 +80,11 @@ public class UserServiceImpl implements UserService {
         user.setEmail(email);
         user.setPasswordHash(bCryptPasswordEncoder.encode(password));
         user.setEnabled(false);
+        user.setUserType(UserType.USER);
 
-        Role customerRole = roleRepository.findByName(UserType.USER.name())
-                .orElseThrow(() -> new RuntimeException("Role CUSTOMER not found"));
-        user.setRoles(Set.of(customerRole));
+        Role userRole = roleRepository.findByName(UserType.USER.name())
+                .orElseThrow(() -> new RuntimeException("Role USER not found"));
+        user.setRoles(Set.of(userRole));
 
         return userRepository.save(user);
     }
