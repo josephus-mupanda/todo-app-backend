@@ -137,6 +137,7 @@ try {
 Write-Host "Verifying containers..." -ForegroundColor Cyan
 docker ps --filter "name=todo-" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
 
+
 ## ============================
 ## start-docker.ps1 - FIXED VERSION
 ## ============================

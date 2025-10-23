@@ -35,7 +35,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder bCryptPasswordEncoder;
-//    private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final ConfirmationTokenRepository confirmationTokenRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
@@ -61,9 +60,6 @@ public class UserServiceImpl implements UserService {
         if (user == null) {
             throw new UsernameNotFoundException("User not found with username/email: " + usernameOrEmail);
         }
-
-//        User user = userRepository.findFirstByUsername(username)
-//                .orElseThrow(() -> new UsernameNotFoundException("Username not found"));
 
         Set<String> roles = user.getRoles().stream().map(Role::getName).collect(Collectors.toSet());
         Set<String> permissions = user.getRoles().stream()
@@ -227,6 +223,8 @@ public class UserServiceImpl implements UserService {
     // -------------------- PASSWORD RESET TOKEN --------------------
     @Override
     public PasswordResetToken createPasswordResetToken(User user) {
+        // Delete any existing password reset tokens for this user
+        passwordResetTokenRepository.deleteByUser(user);
         PasswordResetToken token = new PasswordResetToken();
         token.setUser(user);
         token.setToken(generateRandomCode());

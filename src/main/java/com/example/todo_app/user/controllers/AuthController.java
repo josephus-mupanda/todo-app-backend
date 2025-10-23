@@ -54,8 +54,8 @@ public class AuthController {
         User user = userService.registerUser(request.username(), request.email(), request.password());
         ConfirmationToken token = userService.createConfirmationToken(user);
 
-        // Send numeric code to email
-        emailSenderService.sendEmail(user.getEmail(), "Confirm your account", "Your code is: " + token.getToken());
+        // Send professional verification email
+        emailSenderService.sendVerificationEmail(user.getEmail(), token.getToken());
 
         userListener.logUserAction(user, "CREATE_USER");
 
@@ -110,10 +110,6 @@ public class AuthController {
         if (user == null) {
             throw new BadRequestException("Invalid token or user not found");
         }
-//        User user = userService.getUserFromToken(token);
-//        if (user == null) {
-//            throw new BadRequestException("Invalid token or user not found");
-//        }
         // Validate before invalidating
         userService.validateTokenOrThrow(token);
         // Add token to blacklist
@@ -138,6 +134,8 @@ public class AuthController {
         user.setEnabled(true);
         userService.saveUser(user);
         userService.deleteConfirmationToken(token);
+        // Send welcome email after confirmation
+        emailSenderService.sendWelcomeEmail(user.getEmail(), user.getUsername());
 
         return GenericResponse.ok("User confirmed successfully");
     }
@@ -153,8 +151,8 @@ public class AuthController {
         if (user == null) throw new NotFoundException("Email not found");
 
         PasswordResetToken token = userService.createPasswordResetToken(user);
-
-        emailSenderService.sendEmail(user.getEmail(), "Reset your password", "Your reset code is: " + token.getToken());
+        // Send professional password reset email
+        emailSenderService.sendPasswordResetEmail(user.getEmail(), token.getToken());
 
         return GenericResponse.ok("Password reset code sent to email");
     }
@@ -177,11 +175,5 @@ public class AuthController {
         userService.deletePasswordResetToken(token);
 
         return GenericResponse.ok("Password changed successfully");
-    }
-    private void sendMail(String email, String subject, String body) {
-        emailSenderService.sendEmail(email, subject, body);
-    }
-    private void sendMailToAdmin(String fromEmail, String subject, String body) {
-        sendMail(adminEmail, subject, "Message from: " + fromEmail + "\n\n" + body);
     }
 }
